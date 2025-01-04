@@ -1,4 +1,4 @@
-const User = require('../models/user');
+const Newsletter = require('../models/newsletter');
 
 // Add a user to the newsletter
 const addUser = async (req, res, next) => {
@@ -11,14 +11,19 @@ const addUser = async (req, res, next) => {
   }
 
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    const userExists = await Newsletter.findOne({ email });
+    if (userExists && userExists.isSubscribed) {
       const error = new Error('User already subscribed');
       error.statusCode = 400;
       return next(error);
     }
-
-    const user = await User.create({ username, email });
+    if(userExists && !userExists.isSubscribed){
+      userExists.isSubscribed=true;
+      userExists.username=username;
+      userExists.save();
+      return res.status(201).json({ message: 'User successfully subscribed', userExists });
+    }
+    const user = await Newsletter.create({ username, email });
     res.status(201).json({ message: 'User added to the newsletter', user });
   } catch (error) {
     next(error); // Pass error to error-handling middleware
@@ -28,7 +33,7 @@ const addUser = async (req, res, next) => {
 // Get all users
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
+    const users = await Newsletter.find();
     res.status(200).json(users);
   } catch (error) {
     next(error);
@@ -36,7 +41,7 @@ const getAllUsers = async (req, res, next) => {
 };
 
 // Delete a user from the newsletter
-const deleteUser = async (req, res, next) => {
+const unsubscribeUser = async (req, res, next) => {
   const { email } = req.body;
 
   if (!email) {
@@ -46,12 +51,19 @@ const deleteUser = async (req, res, next) => {
   }
 
   try {
-    const user = await User.findOneAndDelete({ email });
+    const user = await Newsletter.findOne({ email });
     if (!user) {
       const error = new Error('User not found');
       error.statusCode = 404;
       return next(error);
     }
+    if(!user.isSubscribed){
+      const error = new Error('User already unsubscribed');
+      error.statusCode = 404;
+      return next(error);
+    }
+    user.isSubscribed=false;
+    user.save();
 
     res.status(200).json({ message: 'User unsubscribed successfully' });
   } catch (error) {
@@ -59,4 +71,4 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
-module.exports = { addUser, getAllUsers, deleteUser };
+module.exports = { addUser, getAllUsers, unsubscribeUser };
