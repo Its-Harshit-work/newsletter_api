@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db'); // Import connectDB
 const userRoutes = require('./routes/userRoutes');
+const cors=require('cors');
 
 dotenv.config();
 connectDB(); // Call the function to connect to MongoDB
